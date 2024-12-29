@@ -1,5 +1,5 @@
 
-from .model_evaluate import calc_loss_batch, calc_loss_batch_instruction
+from .model_evaluate import calc_loss_batch
 from .model_evaluate import evaluate_model
 from .model_evaluate import calc_accuracy_loader
 import torch
@@ -63,7 +63,7 @@ def gpt_load_params(model_name, device="cpu", mode = "test_mode"):
 
 
 def train_classifier_simple(model, train_loader, val_loader, optimizer, device, num_epochs,
-                            eval_freq, eval_iter, tokenizer):
+                            eval_freq, eval_iter, type_training):
     # Initialize lists to track losses and tokens seen
     train_losses, val_losses, train_accs, val_accs = [], [], [], []
     examples_seen, global_step = 0, -1
@@ -74,7 +74,7 @@ def train_classifier_simple(model, train_loader, val_loader, optimizer, device, 
 
         for input_batch, target_batch in train_loader:
             optimizer.zero_grad()  # Reset loss gradients from previous batch iteration
-            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            loss = calc_loss_batch(input_batch, target_batch, model, device, type_training)
             loss.backward()  # Calculate loss gradients
             optimizer.step()  # Update model weights using loss gradients
             examples_seen += input_batch.shape[0]  # New: track examples instead of tokens
@@ -83,7 +83,7 @@ def train_classifier_simple(model, train_loader, val_loader, optimizer, device, 
             # Optional evaluation step
             if global_step % eval_freq == 0:
                 train_loss, val_loss = evaluate_model(
-                    model, train_loader, val_loader, device, eval_iter)
+                    model, train_loader, val_loader, device, eval_iter, type_training)
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
                 print(f"Ep {epoch+1} (Step {global_step:06d}): "
@@ -101,7 +101,7 @@ def train_classifier_simple(model, train_loader, val_loader, optimizer, device, 
 
 
 def train_model_simple(model, train_loader, val_loader, optimizer, device, num_epochs,
-                       eval_freq, eval_iter, start_context, tokenizer):
+                       eval_freq, eval_iter, start_context, tokenizer, type_training):
     # Initialize lists to track losses and tokens seen
     train_losses, val_losses, track_tokens_seen = [], [], []
     tokens_seen, global_step = 0, -1
@@ -112,7 +112,7 @@ def train_model_simple(model, train_loader, val_loader, optimizer, device, num_e
 
         for input_batch, target_batch in train_loader:
             optimizer.zero_grad()  # Reset loss gradients from previous batch iteration
-            loss = calc_loss_batch_instruction(input_batch, target_batch, model, device)
+            loss = calc_loss_batch(input_batch, target_batch, model, device, type_training)
             loss.backward()  # Calculate loss gradients
             optimizer.step()  # Update model weights using loss gradients
             tokens_seen += input_batch.numel()
@@ -121,7 +121,7 @@ def train_model_simple(model, train_loader, val_loader, optimizer, device, num_e
             # Optional evaluation step
             if global_step % eval_freq == 0:
                 train_loss, val_loss = evaluate_model(
-                    model, train_loader, val_loader, device, eval_iter)
+                    model, train_loader, val_loader, device, eval_iter, type_training)
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
                 track_tokens_seen.append(tokens_seen)

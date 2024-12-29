@@ -26,20 +26,25 @@ def calc_accuracy_loader(data_loader, model, device, num_batches=None):
     return correct_predictions / num_examples
 
 
-def calc_loss_batch(input_batch, target_batch, model, device):
+def calc_loss_batch(input_batch, target_batch, model, device, type_training):
     input_batch, target_batch = input_batch.to(device), target_batch.to(device)
-    logits = model(input_batch)[:, -1, :]  # Logits of last output token
-    loss = torch.nn.functional.cross_entropy(logits, target_batch)
+    if type_training == "classification":
+        logits = model(input_batch)[:, -1, :]  # Logits of last output token
+        loss = torch.nn.functional.cross_entropy(logits, target_batch)
+    else:
+        logits = model(input_batch)
+        loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
+
     return loss
 
-def calc_loss_batch_instruction(input_batch, target_batch, model, device):
-    input_batch, target_batch = input_batch.to(device), target_batch.to(device)
-    logits = model(input_batch)
-    loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
-    return loss
+# def calc_loss_batch_instruction(input_batch, target_batch, model, device):
+#     input_batch, target_batch = input_batch.to(device), target_batch.to(device)
+#     logits = model(input_batch)
+#     loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
+#     return loss
 
 
-def calc_loss_loader(data_loader, model, device, num_batches=None):
+def calc_loss_loader(data_loader, model, device, num_batches=None, type_training="classification"):
     total_loss = 0.
     if len(data_loader) == 0:
         return float("nan")
@@ -49,24 +54,24 @@ def calc_loss_loader(data_loader, model, device, num_batches=None):
         num_batches = min(num_batches, len(data_loader))
     for i, (input_batch, target_batch) in enumerate(data_loader):
         if i < num_batches:
-            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            loss = calc_loss_batch(input_batch, target_batch, model, device, type_training)
             total_loss += loss.item()
         else:
             break
     return total_loss / num_batches
 
 
-def evaluate_model(model, train_loader, val_loader, device, eval_iter):
+def evaluate_model(model, train_loader, val_loader, device, eval_iter, type_training="classification"):
     model.eval()
     with torch.no_grad():
-        train_loss = calc_loss_loader(train_loader, model, device, num_batches=eval_iter)
-        val_loss = calc_loss_loader(val_loader, model, device, num_batches=eval_iter)
+        train_loss = calc_loss_loader(train_loader, model, device, eval_iter, type_training)
+        val_loss = calc_loss_loader(val_loader, model, device, eval_iter, type_training)
     model.train()
     return train_loss, val_loss
 
 
-def plot_values(epochs_seen, examples_seen, train_values, val_values, figsize=(5, 3),label="loss"):
-    fig, ax1 = plt.subplots(figsize)
+def plot_values(epochs_seen, examples_seen, train_values, val_values, fig_size=(5, 3),label="loss"):
+    fig, ax1 = plt.subplots(figsize=fig_size)
 
     # Plot training and validation loss against epochs
     ax1.plot(epochs_seen, train_values, label=f"Training {label}")
@@ -84,24 +89,3 @@ def plot_values(epochs_seen, examples_seen, train_values, val_values, figsize=(5
     path = Path("plots")
     plt.savefig(path / f"{label}-plot.pdf")
     # plt.show()
-
-# def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
-#     fig, ax1 = plt.subplots(figsize=(12, 6))
-#
-#     # Plot training and validation loss against epochs
-#     ax1.plot(epochs_seen, train_losses, label="Training loss")
-#     ax1.plot(epochs_seen, val_losses, linestyle="-.", label="Validation loss")
-#     ax1.set_xlabel("Epochs")
-#     ax1.set_ylabel("Loss")
-#     ax1.legend(loc="upper right")
-#
-#     # Create a second x-axis for tokens seen
-#     ax2 = ax1.twiny()  # Create a second x-axis that shares the same y-axis
-#     ax2.plot(tokens_seen, train_losses, alpha=0)  # Invisible plot for aligning ticks
-#     ax2.set_xlabel("Tokens seen")
-#
-#     fig.tight_layout()  # Adjust layout to make room
-#     plot_name = "loss-plot-standalone.pdf"
-#     print(f"Plot saved as {plot_name}")
-#     plt.savefig(plot_name)
-#     # plt.show()

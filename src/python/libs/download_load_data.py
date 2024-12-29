@@ -15,7 +15,8 @@ def download_load_files(file_path, url):
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(data)
     else:
-        if _get_file_extension == "json" :
+        print(f"File extension : {_get_file_extension(url)}")
+        if _get_file_extension(url) == "json" :
             with open(file_path, "r") as file:
                 data = json.load(file)
         else :
@@ -66,4 +67,4 @@ def download_and_unzip_spam_data(url, zip_path, extracted_path, data_file_path, 
 
 def _get_file_extension(url):
     _, ext = os.path.splitext(url)
-    return ext
+    return ext.split('.')[1]

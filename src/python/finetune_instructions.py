@@ -39,7 +39,9 @@ file_path = Path("../../datasets/instruction")
 url = "https://raw.githubusercontent.com/rasbt/LLMs-from-scratch/main/ch07/01_main-chapter-code/instruction-data.json"
 data = download_load_files(file_path / "instruction-data.json", url)
 
-#print(data)
+print(f"Type data {type(data)}")
+
+print(format_input(data[50]))
 
 train_portion = int(len(data) * 0.85)  # 85% for training
 test_portion = int(len(data) * 0.1)  # 10% for testing
@@ -59,17 +61,6 @@ else:
     mode = "train"
     model_name = "gpt2-small (124M)"
 
-print(test_data)
-
-
-with open(file_path / "train.json", "w") as js_file:
-    json.dump(train_data, js_file, indent=4)
-with open(file_path / "validation.json", "w") as js_file:
-    json.dump(val_data, js_file, indent=4)
-
-with open(file_path / "test.json", "w") as js_file:
-    json.dump(test_data, js_file, indent=4)
-
 
 print("Training set length:", len(train_data))
 print("Validation set length:", len(val_data))
@@ -81,18 +72,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
 print(50 * "-")
 
-train_loader = create_dataloader(file_path / "train.json", batch_size=4,
+train_loader = create_dataloader( train_data, batch_size=4,
                                  max_length=1024,
-                                 stride=128,
+                                 stride=None,
                                  shuffle=True,
                                  drop_last=True,
                                  num_workers=0,
                                  dataset_type="instruction",
                                  device=device)
 
-val_loader = create_dataloader(file_path / "validation.json", batch_size=4,
+val_loader = create_dataloader(val_data, batch_size=4,
                                max_length=1024,
-                               stride=128,
+                               stride=None,
                                shuffle=True,
                                drop_last=True,
                                num_workers=0,
@@ -112,8 +103,8 @@ model.to(device)
 
 print("Initial losses")
 with torch.no_grad():
-    train_loss = calc_loss_loader(train_loader, model, device, num_batches=5)
-    val_loss = calc_loss_loader(val_loader, model, device, num_batches=5)
+    train_loss = calc_loss_loader(train_loader, model, device, num_batches=5, type_training="instruction")
+    val_loss = calc_loss_loader(val_loader, model, device, num_batches=5, type_training="instruction")
 
 print("   Training loss:", train_loss)
 print("   Validation loss:", val_loss)
@@ -127,15 +118,15 @@ torch.manual_seed(123)
 train_losses, val_losses, tokens_seen = train_model_simple(
     model, train_loader, val_loader, optimizer, device,
     num_epochs=num_epochs, eval_freq=5, eval_iter=5,
-    start_context=format_input(val_data[0]), tokenizer=tokenizer
-)
+    start_context=format_input(val_data[0]), tokenizer=tokenizer,
+    type_training="instruction")
 
 end_time = time.time()
 execution_time_minutes = (end_time - start_time) / 60
 print(f"Training completed in {execution_time_minutes:.2f} minutes.")
 
 epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
-plot_values(epochs_tensor, tokens_seen, train_losses, val_losses, figsize=(12, 6))
+plot_values(epochs_tensor, tokens_seen, train_losses, val_losses, fig_size=(12, 6))
 print(50 * "-")
 
 #######################################
@@ -157,11 +148,12 @@ for i, entry in tqdm(enumerate(test_data), total=len(test_data)):
 
     test_data[i]["model_response"] = response_text
 
-test_data_path = "instruction-data-with-response-standalone.json"
-with open(test_data_path, "w") as file:
+test_data_path = "../../datasets/instruction/instruction-data-with-response-standalone.json"
+with open(file_path / test_data_path, "w") as file:
     json.dump(test_data, file, indent=4)  # "indent" for pretty-printing
 print(f"Responses saved as {test_data_path}")
 
 file_name = f"{re.sub(r'[ ()]', '', model_name)}-sft-standalone.pth"
-torch.save(model.state_dict(), file_name)
+model_path = Path("models")
+torch.save(model.state_dict(), model_path / file_name)
 print(f"Model saved as {file_name}")
