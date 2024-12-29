@@ -32,6 +32,12 @@ def calc_loss_batch(input_batch, target_batch, model, device):
     loss = torch.nn.functional.cross_entropy(logits, target_batch)
     return loss
 
+def calc_loss_batch_instruction(input_batch, target_batch, model, device):
+    input_batch, target_batch = input_batch.to(device), target_batch.to(device)
+    logits = model(input_batch)
+    loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
+    return loss
+
 
 def calc_loss_loader(data_loader, model, device, num_batches=None):
     total_loss = 0.
@@ -59,8 +65,8 @@ def evaluate_model(model, train_loader, val_loader, device, eval_iter):
     return train_loss, val_loss
 
 
-def plot_values(epochs_seen, examples_seen, train_values, val_values, label="loss"):
-    fig, ax1 = plt.subplots(figsize=(5, 3))
+def plot_values(epochs_seen, examples_seen, train_values, val_values, figsize=(5, 3),label="loss"):
+    fig, ax1 = plt.subplots(figsize)
 
     # Plot training and validation loss against epochs
     ax1.plot(epochs_seen, train_values, label=f"Training {label}")
@@ -78,3 +84,24 @@ def plot_values(epochs_seen, examples_seen, train_values, val_values, label="los
     path = Path("plots")
     plt.savefig(path / f"{label}-plot.pdf")
     # plt.show()
+
+# def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
+#     fig, ax1 = plt.subplots(figsize=(12, 6))
+#
+#     # Plot training and validation loss against epochs
+#     ax1.plot(epochs_seen, train_losses, label="Training loss")
+#     ax1.plot(epochs_seen, val_losses, linestyle="-.", label="Validation loss")
+#     ax1.set_xlabel("Epochs")
+#     ax1.set_ylabel("Loss")
+#     ax1.legend(loc="upper right")
+#
+#     # Create a second x-axis for tokens seen
+#     ax2 = ax1.twiny()  # Create a second x-axis that shares the same y-axis
+#     ax2.plot(tokens_seen, train_losses, alpha=0)  # Invisible plot for aligning ticks
+#     ax2.set_xlabel("Tokens seen")
+#
+#     fig.tight_layout()  # Adjust layout to make room
+#     plot_name = "loss-plot-standalone.pdf"
+#     print(f"Plot saved as {plot_name}")
+#     plt.savefig(plot_name)
+#     # plt.show()

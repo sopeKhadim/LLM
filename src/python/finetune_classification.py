@@ -16,7 +16,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Finetune a GPT model for classification"
+        description="Finetune a GPT model for spam_classifier"
     )
     parser.add_argument(
         "--test_mode",
@@ -50,31 +50,6 @@ if __name__ == "__main__":
     ########################################
     # Create data loaders
     ########################################
-    tokenizer = tiktoken.get_encoding("gpt2")
-
-    train_loader = create_dataloader(cleaned_data_path / "train.csv", batch_size=4,
-                      max_length=None,
-                      stride=128,
-                      shuffle=True,
-                      drop_last=True,
-                      num_workers=0,
-                      dataset_type="spam")
-
-    val_loader = create_dataloader(cleaned_data_path / "validation.csv", batch_size=4,
-                      max_length=None,
-                      stride=128,
-                      shuffle=True,
-                      drop_last=True,
-                      num_workers=0,
-                      dataset_type="spam")
-
-    test_dataset = create_dataloader(cleaned_data_path / "test.csv", batch_size=4,
-                                   max_length=None,
-                                   stride=128,
-                                   shuffle=True,
-                                   drop_last=True,
-                                   num_workers=0,
-                                   dataset_type="spam")
 
     if args.test_mode:
         mode = "test_mode"
@@ -83,7 +58,38 @@ if __name__ == "__main__":
     else:
         mode="train"
         model_name = "gpt2-small (124M)"
-        device = "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print(f"Hardware Device : {device}")
+    tokenizer = tiktoken.get_encoding("gpt2")
+
+    train_loader = create_dataloader(cleaned_data_path / "train.csv", batch_size=4,
+                      max_length=None,
+                      stride=128,
+                      shuffle=True,
+                      drop_last=True,
+                      num_workers=0,
+                      dataset_type="spam",
+                      device=device)
+
+    val_loader = create_dataloader(cleaned_data_path / "validation.csv", batch_size=4,
+                      max_length=None,
+                      stride=128,
+                      shuffle=True,
+                      drop_last=True,
+                      num_workers=0,
+                      dataset_type="spam",
+                      device=device)
+
+    test_dataset = create_dataloader(cleaned_data_path / "test.csv", batch_size=4,
+                                   max_length=None,
+                                   stride=128,
+                                   shuffle=True,
+                                   drop_last=True,
+                                   num_workers=0,
+                                   dataset_type="spam",
+                                   device=device)
+
 
     model,  BASE_CONFIG = gpt_load_params(model_name, device, mode)
 
@@ -98,7 +104,7 @@ if __name__ == "__main__":
 
     num_classes = 2
     model.out_head = torch.nn.Linear(in_features=BASE_CONFIG["emb_dim"], out_features=num_classes)
-    #model.to(device)
+    model.to(device)
 
     for param in model.trf_blocks[-1].parameters():
         param.requires_grad = True
@@ -141,6 +147,6 @@ if __name__ == "__main__":
         plot_values(epochs_tensor, examples_seen_tensor, train_accs, val_accs, label="accuracy")
 
         # Save model
-        torch.save(model.state_dict(), "models/review_classifier.pth")
+        torch.save(model.state_dict(), "models/spam_classifier/review_classifier.pth")
 
 

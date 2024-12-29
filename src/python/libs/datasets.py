@@ -73,12 +73,16 @@ class SpamDataset(Dataset):
 
 
 class InstructionDataset(Dataset):
-    def __init__(self, data, tokenizer):
+    def __init__(self, json_data, tokenizer):
+
+        with open(json_data, "r", encoding="utf-8") as jsons_file:
+            data = jsons_file.read()
+
         self.data = data
 
         # Pre-tokenize texts
         self.encoded_texts = []
-        for entry in data:
+        for entry in self.data:
             instruction_plus_input = format_input(entry)
             response_text = f"\n\n### Response:\n{entry['output']}"
             full_text = instruction_plus_input + response_text

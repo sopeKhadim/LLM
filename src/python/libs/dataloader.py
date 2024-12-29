@@ -14,7 +14,7 @@ def create_dataloader(txt, batch_size=4,
                          drop_last=True,
                          num_workers=1,
                          dataset_type="default",
-                         device=None):
+                         device="cpu"):
 
     # Initialize the collate_fn to None
 
@@ -26,8 +26,6 @@ def create_dataloader(txt, batch_size=4,
     elif dataset_type == "spam":
         dataset = SpamDataset(txt, tokenizer, max_length, stride)
     elif dataset_type == "instruction":
-        if device is None :
-            device = "cpu"
         customized_collate_fn = partial(custom_collate_fn, device=device, allowed_max_length=max_length)
         dataset = InstructionDataset(txt, tokenizer)
     else:
@@ -45,43 +43,7 @@ def create_dataloader(txt, batch_size=4,
         drop_last=drop_last)
 
     return dataloader
-#
-# def create_dataloader_spam(txt, batch_size=4, max_length=256,
-#                          stride=128, shuffle=True, drop_last=True, num_workers=1):
-#     # Create dataset
-#     dataset = SpamDataset(txt, tokenizer, max_length, stride)
-#
-#     # Create dataloader
-#     dataloader = DataLoader(
-#         dataset, batch_size=batch_size,
-#         shuffle=shuffle,
-#         num_workers=num_workers,
-#         drop_last=drop_last)
-#
-#     return dataloader
-#
-#
-# def create_dataloader_instructions(txt, batch_size=4, max_length=1024,
-#                          stride=128, shuffle=False, drop_last=False, num_workers=1, device="cpu"):
-#
-#
-#     customized_collate_fn = partial(custom_collate_fn, device=device, allowed_max_length=max_length)
-#
-#     # Create dataset
-#     dataset = InstructionDataset(txt, tokenizer)
-#
-#     # Create dataloader
-#     dataloader = DataLoader(
-#         dataset,
-#         batch_size=batch_size,
-#         collate_fn=customized_collate_fn,
-#         shuffle=shuffle,
-#         num_workers=num_workers,
-#         drop_last=drop_last)
-#
-#     return dataloader
 
-#####
 def custom_collate_fn(
     batch,
     pad_token_id=50256,

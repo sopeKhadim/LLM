@@ -1,6 +1,6 @@
 from pathlib import Path
 
-finetuned_model_path = Path("models/review_classifier.pth")
+finetuned_model_path = Path("models/spam_classifier/review_classifier.pth")
 if not finetuned_model_path.exists():
     print(
         f"Could not find '{finetuned_model_path}'.\n"
