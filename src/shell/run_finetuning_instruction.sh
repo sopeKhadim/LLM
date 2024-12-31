@@ -1,0 +1,1 @@
+python ../python/finetune_instruction.py --test_mode
